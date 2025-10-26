@@ -37,10 +37,10 @@ export class Game extends Phaser.Scene {
 
     // Jugador
     this.player = this.physics.add.sprite(50, this.groundY - 12, 'miner');
-    this.player.setScale(1.5);
-    this.player.setSize(16, 16);
-    this.player.setDisplaySize(16 * 1.5, 16 * 1.5);
-    this.player.setOffset(0, 0);
+    this.player.setScale(1.5); // escala visual
+    // Hitbox inicial (más estrecha que el sprite)
+    this.player.body.setSize(10, 16); // ancho 14, alto 24
+    this.player.body.setOffset((18*1.5 - 20)/2, 0); // centrar horizontalmente
     this.player.setGravityY(700);
     this.player.setCollideWorldBounds(true);
     this.player.y = this.groundCollider.y - (this.groundCollider.displayHeight / 2) - (this.player.displayHeight / 2);
@@ -67,8 +67,8 @@ export class Game extends Phaser.Scene {
         if (this.player.body.blocked.down) {
           this.player.setVelocityY(-220);
           this.player.play('run', true);
-          this.player.body.setSize(16, 16);
-          this.player.body.setOffset(0, 0);
+          this.player.body.setSize(10, 16); // ancho 14, alto 24
+    this.player.body.setOffset((18*1.5 - 20)/2, 0); // centrar horizontalmente
           this.isSwipeDown = false;
         }
       } else {
@@ -129,8 +129,8 @@ export class Game extends Phaser.Scene {
     if (Phaser.Input.Keyboard.JustDown(this.cursors.up) && isOnGround) {
       this.player.setVelocityY(-220);
       this.player.play('run', true);
-      this.player.body.setSize(16, 16);
-      this.player.body.setOffset(0, 0);
+      this.player.body.setSize(10, 16); 
+    this.player.body.setOffset((18*1.5 - 20)/2, 0); // centrar horizontalmente
       this.isSwipeDown = false;
     }
 
@@ -138,14 +138,14 @@ export class Game extends Phaser.Scene {
     if ((this.cursors.down.isDown && isOnGround) || (this.isSwipeDown && isOnGround)) {
       if (this.player.anims.currentAnim.key !== 'down') {
         this.player.play('down');
-        this.player.body.setSize(16, 8);
-        this.player.body.setOffset(0, 8);
+        this.player.body.setSize(9, 8);
+        this.player.body.setOffset(5, 8);
       }
     } else {
       if (this.player.anims.currentAnim.key !== 'run') {
         this.player.play('run');
-        this.player.body.setSize(16, 16);
-        this.player.body.setOffset(0, 0);
+        this.player.body.setSize(10, 16); // ancho 14, alto 24
+    this.player.body.setOffset((18*1.5 - 20)/2, 0); // centrar horizontalmente
       }
       if (this.isSwipeDown && !isOnGround) {
         this.isSwipeDown = false; // Reset swipe si saltando
@@ -190,7 +190,7 @@ export class Game extends Phaser.Scene {
 
     // Hitbox ajustada verticalmente
     bat.body.setSize(12 * 1.5, 6 * 1.5);
-    bat.body.setOffset(2 * 1.5, 5 * 1.5);
+    bat.body.setOffset(0, 5 * 0.6);
 
     bat.flipX = true;
     bat.play('fly');
