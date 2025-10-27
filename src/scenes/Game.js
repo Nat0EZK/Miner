@@ -17,6 +17,10 @@ export class Game extends Phaser.Scene {
   }
 
   create() {
+    // --- RESET / FLAGS ---
+    this.gameOver = false; // <--- importante: inicializar la bandera en create()
+    // (siempre que reinicies la escena, create() se ejecuta y deja gameOver en false)
+
     this.gameWidth = this.scale.width;
     this.gameHeight = this.scale.height;
     this.groundY = this.gameHeight - 16;
@@ -37,10 +41,9 @@ export class Game extends Phaser.Scene {
 
     // Jugador
     this.player = this.physics.add.sprite(50, this.groundY - 12, 'miner');
-    this.player.setScale(1.5); // escala visual
-    // Hitbox inicial (más estrecha que el sprite)
-    this.player.body.setSize(10, 16); // ancho 14, alto 24
-    this.player.body.setOffset((18*1.5 - 20)/2, 0); // centrar horizontalmente
+    this.player.setScale(1.5);
+    this.player.body.setSize(10, 16);
+    this.player.body.setOffset((18 * 1.5 - 20) / 2, 0);
     this.player.setGravityY(700);
     this.player.setCollideWorldBounds(true);
     this.player.y = this.groundCollider.y - (this.groundCollider.displayHeight / 2) - (this.player.displayHeight / 2);
@@ -63,16 +66,14 @@ export class Game extends Phaser.Scene {
       const deltaY = pointer.y - this.swipeStartY;
       if (Math.abs(deltaY) < 10) return;
       if (deltaY < 0) {
-        // swipe arriba → salto
         if (this.player.body.blocked.down) {
           this.player.setVelocityY(-220);
           this.player.play('run', true);
-          this.player.body.setSize(10, 16); // ancho 14, alto 24
-    this.player.body.setOffset((18*1.5 - 20)/2, 0); // centrar horizontalmente
+          this.player.body.setSize(10, 16);
+          this.player.body.setOffset((18 * 1.5 - 20) / 2, 0);
           this.isSwipeDown = false;
         }
       } else {
-        // swipe abajo → agacharse
         this.isSwipeDown = true;
       }
     });
@@ -89,7 +90,7 @@ export class Game extends Phaser.Scene {
     this.physics.add.overlap(this.player, this.minerals, this.collectMineral, null, this);
     this.physics.add.overlap(this.player, this.bats, this.hitSpike, null, this);
 
-    // Spawner obstáculos (spikes y murciélagos)
+    // Spawner obstáculos
     this.time.addEvent({ delay: 1200, callback: this.spawnObstacle, callbackScope: this, loop: true });
 
     // Spawner minerales
@@ -115,10 +116,13 @@ export class Game extends Phaser.Scene {
       gameContainer.appendChild(scoreElement);
     }
     this.scoreElement = scoreElement;
+    this.scoreElement.style.display = 'block';
     this.scoreElement.innerText = '0';
   }
 
   update() {
+    if (this.gameOver) return;
+
     this.background.tilePositionX += 0.5;
     this.ground.tilePositionX += 1;
     this.groundBase.tilePositionX += 1;
@@ -129,12 +133,12 @@ export class Game extends Phaser.Scene {
     if (Phaser.Input.Keyboard.JustDown(this.cursors.up) && isOnGround) {
       this.player.setVelocityY(-220);
       this.player.play('run', true);
-      this.player.body.setSize(10, 16); 
-    this.player.body.setOffset((18*1.5 - 20)/2, 0); // centrar horizontalmente
+      this.player.body.setSize(10, 16);
+      this.player.body.setOffset((18 * 1.5 - 20) / 2, 0);
       this.isSwipeDown = false;
     }
 
-    // Agacharse con teclado o swipe
+    // Agacharse
     if ((this.cursors.down.isDown && isOnGround) || (this.isSwipeDown && isOnGround)) {
       if (this.player.anims.currentAnim.key !== 'down') {
         this.player.play('down');
@@ -144,11 +148,11 @@ export class Game extends Phaser.Scene {
     } else {
       if (this.player.anims.currentAnim.key !== 'run') {
         this.player.play('run');
-        this.player.body.setSize(10, 16); // ancho 14, alto 24
-    this.player.body.setOffset((18*1.5 - 20)/2, 0); // centrar horizontalmente
+        this.player.body.setSize(10, 16);
+        this.player.body.setOffset((18 * 1.5 - 20) / 2, 0);
       }
       if (this.isSwipeDown && !isOnGround) {
-        this.isSwipeDown = false; // Reset swipe si saltando
+        this.isSwipeDown = false;
       }
     }
 
@@ -187,11 +191,8 @@ export class Game extends Phaser.Scene {
     bat.setScale(1.5);
     bat.body.allowGravity = false;
     bat.setVelocityX(-100);
-
-    // Hitbox ajustada verticalmente
     bat.body.setSize(12 * 1.5, 6 * 1.5);
     bat.body.setOffset(0, 5 * 0.6);
-
     bat.flipX = true;
     bat.play('fly');
   }
@@ -210,6 +211,48 @@ export class Game extends Phaser.Scene {
   }
 
   hitSpike() {
-    this.scene.restart();
+    if (this.gameOver) return;
+    this.gameOver = true;
+
+    // Pausar todo (física) — mantenemos la pausa para que la escena "se congele"
+    this.physics.pause();
+    this.player.setTint(0xff0000);
+    this.player.anims.stop();
+
+    // Ocultar puntaje
+    if (this.scoreElement) this.scoreElement.style.display = 'none';
+
+    // Texto principal
+    const perdisteText = this.add.text(
+      this.cameras.main.centerX,
+      this.cameras.main.centerY - 30,
+      '¡Perdiste!',
+      {
+        fontFamily: 'Arial',
+        fontSize: '48px',
+        color: '#b30000',
+        fontStyle: 'bold'
+      }
+    ).setOrigin(0.5);
+
+    // Texto secundario
+    const restartText = this.add.text(
+      this.cameras.main.centerX,
+      this.cameras.main.centerY + 40,
+      'Toca para volver a jugar',
+      {
+        fontFamily: 'Arial',
+        fontSize: '20px',
+        color: '#ffffff'
+      }
+    ).setOrigin(0.5);
+
+    // Esperar click o toque — al recibirlo, primero reanudo física por si quedó pausada,
+    // luego reinicio la escena (create() volverá a poner gameOver = false y mostrar score).
+    this.input.once('pointerdown', () => {
+      // Asegurar que la física esté activa antes de reiniciar
+      if (this.physics.world.isPaused) this.physics.resume();
+      this.scene.restart();
+    });
   }
 }
